@@ -77,35 +77,43 @@ Be strict but fair. If the package looks counterfeit (blurry logos, wrong fonts,
 export const analyzeMedicineImage = createServerFn({ method: "POST" })
   .inputValidator((d: AnalyzeInput) => d)
   .handler(async ({ data }): Promise<AnalyzeMedicineImageResult> => {
-    const key = process.env.GEMINI_API_KEY;
+    const key = process.env.LOVABLE_API_KEY;
     if (!key) {
       return {
         ok: false,
         code: "MISSING_API_KEY",
-        message: "Gemini API key is not configured. Add a valid key, then try again.",
+        message: "Lovable AI is not configured. Please try again later.",
       };
     }
 
-    const parts: Array<Record<string, unknown>> = [{ text: PROMPT }];
-    parts.push({ inline_data: { mime_type: data.mimeType, data: data.imageBase64 } });
+    const content: Array<Record<string, unknown>> = [
+      { type: "text", text: PROMPT },
+      { type: "image_url", image_url: { url: `data:${data.mimeType};base64,${data.imageBase64}` } },
+    ];
     if (data.referenceBase64 && data.referenceMimeType) {
-      parts.push({ text: "Reference genuine image follows:" });
-      parts.push({ inline_data: { mime_type: data.referenceMimeType, data: data.referenceBase64 } });
+      content.push({ type: "text", text: "Reference genuine image follows:" });
+      content.push({
+        type: "image_url",
+        image_url: { url: `data:${data.referenceMimeType};base64,${data.referenceBase64}` },
+      });
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
     let res: Response;
     try {
-      res = await fetch(url, {
+      res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Lovable-API-Key": key,
+        },
         body: JSON.stringify({
-          contents: [{ role: "user", parts }],
-          generationConfig: { temperature: 0.1, responseMimeType: "application/json" },
+          model: "google/gemini-3-flash-preview",
+          messages: [{ role: "user", content }],
+          response_format: { type: "json_object" },
         }),
       });
     } catch (error) {
-      console.error("Gemini request failed", error);
+      console.error("Lovable AI request failed", error);
       return {
         ok: false,
         code: "AI_SERVICE_ERROR",
@@ -115,24 +123,31 @@ export const analyzeMedicineImage = createServerFn({ method: "POST" })
 
     if (!res.ok) {
       const t = await res.text();
-      console.error(`Gemini API error ${res.status}:`, t.slice(0, 500));
+      console.error(`Lovable AI error ${res.status}:`, t.slice(0, 500));
       if (res.status === 429) {
         return {
           ok: false,
           code: "QUOTA_EXCEEDED",
-          message: "This Gemini API key has reached its quota. Wait for quota reset or add a key with available quota, then try again.",
+          message: "AI rate limit reached. Please wait a moment and try again.",
+        };
+      }
+      if (res.status === 402) {
+        return {
+          ok: false,
+          code: "QUOTA_EXCEEDED",
+          message: "AI credits exhausted. Please add credits to continue.",
         };
       }
       return {
         ok: false,
         code: "AI_SERVICE_ERROR",
-        message: "AI analysis failed. Please try again with a clearer image or a different API key.",
+        message: "AI analysis failed. Please try again with a clearer image.",
       };
     }
     const json = (await res.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      choices?: Array<{ message?: { content?: string } }>;
     };
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
+    const text = json.choices?.[0]?.message?.content ?? "{}";
     let parsed: MedicineAnalysis;
     try {
       parsed = JSON.parse(text);
@@ -141,7 +156,7 @@ export const analyzeMedicineImage = createServerFn({ method: "POST" })
       try {
         parsed = m ? JSON.parse(m[0]) : emptyAnalysis("The AI response could not be read.");
       } catch (error) {
-        console.error("Invalid Gemini JSON response", error);
+        console.error("Invalid AI JSON response", error);
         return {
           ok: false,
           code: "INVALID_AI_RESPONSE",
