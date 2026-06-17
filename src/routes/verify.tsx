@@ -25,6 +25,7 @@ function VerifyPage() {
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VerificationResult | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const onFile = useCallback((f: File | null | undefined) => {
     if (!f) return;
@@ -32,6 +33,7 @@ function VerifyPage() {
     if (f.size > 8 * 1024 * 1024) { toast.error("Image too large (max 8MB)."); return; }
     setFile(f);
     setResult(null);
+    setAnalysisError(null);
     const reader = new FileReader();
     reader.onload = () => setPreview(reader.result as string);
     reader.readAsDataURL(f);
@@ -45,13 +47,19 @@ function VerifyPage() {
   const analyze = async () => {
     if (!file || !preview) return;
     setLoading(true);
+    setAnalysisError(null);
     try {
       const base64 = preview.split(",")[1];
-      const analysis = await analyzeMedicineImage({
+      const analysisResult = await analyzeMedicineImage({
         data: { imageBase64: base64, mimeType: file.type },
       });
+      if (!analysisResult.ok) {
+        setAnalysisError(analysisResult.message);
+        toast.error(analysisResult.message);
+        return;
+      }
       await initFirebase();
-      const verification = await verifyExtractedMedicine(analysis);
+      const verification = await verifyExtractedMedicine(analysisResult.analysis);
       setResult(verification);
       toast.success("Verification complete");
     } catch (e) {
@@ -62,7 +70,7 @@ function VerifyPage() {
     }
   };
 
-  const clear = () => { setFile(null); setPreview(null); setResult(null); };
+  const clear = () => { setFile(null); setPreview(null); setResult(null); setAnalysisError(null); };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -119,7 +127,19 @@ function VerifyPage() {
 
           {/* Results */}
           <div className="lg:col-span-3">
-            {!result && !loading && (
+            {analysisError && !loading && (
+              <div className="glass rounded-2xl p-8 h-full">
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                  <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                  <div>
+                    <h2 className="font-semibold">AI analysis unavailable</h2>
+                    <p className="mt-1 text-sm">{analysisError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!result && !loading && !analysisError && (
               <div className="glass rounded-2xl p-12 text-center text-muted-foreground h-full grid place-items-center">
                 <div>
                   <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-secondary">
