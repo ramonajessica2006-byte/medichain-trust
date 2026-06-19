@@ -326,3 +326,82 @@ function HistoryTab({ history }: { history: Verification[] }) {
     </div>
   );
 }
+
+function ReportsTab({ reports, reload }: { reports: Report[]; reload: () => Promise<void> }) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const setStatus = async (id: string, status: string) => {
+    setBusyId(id);
+    try {
+      await updateDoc(doc(getDb(), "reports", id), { status });
+      toast.success(`Marked as ${status}`);
+      await reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Delete this report?")) return;
+    await deleteDoc(doc(getDb(), "reports", id));
+    await reload();
+  };
+
+  return (
+    <div className="glass rounded-2xl p-5 mt-4 max-h-[700px] overflow-auto">
+      <h3 className="font-semibold mb-3 flex items-center gap-2">
+        <AlertTriangle className="h-4 w-4 text-red-500" /> Fake medicine reports ({reports.length})
+      </h3>
+      <div className="space-y-3">
+        {reports.map((r) => (
+          <div key={r.id} className="rounded-xl border p-4 bg-card/40">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex-1 min-w-[200px]">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-semibold">{r.medicineName}</h4>
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${
+                    r.status === "pending" ? "bg-amber-100 text-amber-700" :
+                    r.status === "verified" ? "bg-red-100 text-red-700" :
+                    r.status === "dismissed" ? "bg-gray-200 text-gray-700" :
+                    "bg-emerald-100 text-emerald-700"
+                  }`}>{r.status}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                  {r.manufacturer && <span>Mfg: {r.manufacturer}</span>}
+                  {r.batchNumber && <span>Batch: {r.batchNumber}</span>}
+                  {r.pharmacy && <span>Pharmacy: {r.pharmacy}</span>}
+                  {r.location && <span>Location: {r.location}</span>}
+                </div>
+                <p className="text-sm mt-2 whitespace-pre-wrap">{r.description}</p>
+                {(r.reporterName || r.reporterContact) && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Reported by {r.reporterName || "anonymous"}{r.reporterContact ? ` · ${r.reporterContact}` : ""}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {r.createdAt ? new Date(r.createdAt.seconds * 1000).toLocaleString() : "—"}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 shrink-0">
+                <Button size="sm" variant="outline" disabled={busyId === r.id || r.status === "verified"} onClick={() => setStatus(r.id, "verified")}>
+                  <AlertTriangle className="h-3.5 w-3.5 mr-1" /> Confirm fake
+                </Button>
+                <Button size="sm" variant="outline" disabled={busyId === r.id || r.status === "dismissed"} onClick={() => setStatus(r.id, "dismissed")}>
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Dismiss
+                </Button>
+                <button onClick={() => remove(r.id)} className="text-red-500 hover:text-red-700 text-xs flex items-center justify-center gap-1 mt-1">
+                  <Trash2 className="h-3 w-3" /> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {reports.length === 0 && (
+          <div className="py-8 text-center text-muted-foreground">No reports yet.</div>
+        )}
+      </div>
+    </div>
+  );
+}
