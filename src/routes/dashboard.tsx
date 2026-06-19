@@ -40,14 +40,16 @@ function DashboardPage() {
   const load = async () => {
     await initFirebase();
     const db = getDb();
-    const [meds, mfgs, vers] = await Promise.all([
+    const [meds, mfgs, vers, reps] = await Promise.all([
       getDocs(collection(db, "medicines")),
       getDocs(collection(db, "manufacturers")),
       getDocs(query(collection(db, "verifications"), orderBy("createdAt", "desc"), limit(50))).catch(() => null),
+      getDocs(query(collection(db, "reports"), orderBy("createdAt", "desc"), limit(100))).catch(() => null),
     ]);
     setMedicines(meds.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Medicine, "id">) })));
     setManufacturers(mfgs.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Manufacturer, "id">) })));
     if (vers) setHistory(vers.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Verification, "id">) })));
+    if (reps) setReports(reps.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Report, "id">) })));
     setDataLoaded(true);
   };
 
