@@ -21,6 +21,7 @@ export const Route = createFileRoute("/dashboard")({
 interface Medicine { id: string; medicineName: string; manufacturer: string; composition: string; category: string; approvalStatus: string; }
 interface Manufacturer { id: string; manufacturerName: string; country: string; verificationStatus: string; }
 interface Verification { id: string; medicineName: string; manufacturer: string; trustScore: number; riskLevel: string; createdAt?: { seconds: number } | null; }
+interface Report { id: string; medicineName: string; manufacturer?: string; batchNumber?: string; pharmacy?: string; location?: string; reporterName?: string; reporterContact?: string; description: string; status: string; createdAt?: { seconds: number } | null; }
 
 function DashboardPage() {
   const { user, loading } = useAuth();
