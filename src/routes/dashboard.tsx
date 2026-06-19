@@ -29,6 +29,7 @@ function DashboardPage() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [history, setHistory] = useState<Verification[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [busy, setBusy] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
 
