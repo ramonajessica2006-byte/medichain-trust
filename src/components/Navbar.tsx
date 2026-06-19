@@ -11,6 +11,7 @@ export function Navbar() {
   const links = [
     { to: "/", label: "Home" },
     { to: "/verify", label: "Verify Medicine" },
+    { to: "/report", label: "Report Fake" },
     { to: "/how-it-works", label: "How It Works" },
     { to: "/dashboard", label: "Dashboard" },
   ] as const;
