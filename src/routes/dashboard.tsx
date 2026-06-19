@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
 import { initFirebase, getDb } from "@/lib/firebase";
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, limit } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, limit, updateDoc } from "firebase/firestore";
 import { SEED_MEDICINES, ALL_MANUFACTURERS } from "@/lib/seed-data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Pill, Building2, History, BarChart3, Database, Trash2, Plus, Loader2, ShieldCheck } from "lucide-react";
+import { Pill, Building2, History, BarChart3, Database, Trash2, Plus, Loader2, ShieldCheck, AlertTriangle, CheckCircle2, Flag } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
