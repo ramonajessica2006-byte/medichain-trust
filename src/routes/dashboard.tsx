@@ -99,11 +99,12 @@ function DashboardPage() {
           )}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
           <StatCard icon={Pill} label="Medicines" value={medicines.length} />
           <StatCard icon={Building2} label="Manufacturers" value={manufacturers.length} />
           <StatCard icon={History} label="Verifications" value={history.length} />
           <StatCard icon={BarChart3} label="Avg trust" value={history.length ? `${Math.round(history.reduce((a, h) => a + h.trustScore, 0) / history.length)}%` : "—"} />
+          <StatCard icon={Flag} label="Pending reports" value={reports.filter((r) => r.status === "pending").length} />
         </div>
 
         <div className="glass rounded-2xl p-6 mb-8">
@@ -115,11 +116,19 @@ function DashboardPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="medicines">
+        <Tabs defaultValue={reports.some((r) => r.status === "pending") ? "reports" : "medicines"}>
           <TabsList>
             <TabsTrigger value="medicines">Medicines</TabsTrigger>
             <TabsTrigger value="manufacturers">Manufacturers</TabsTrigger>
             <TabsTrigger value="history">Verification History</TabsTrigger>
+            <TabsTrigger value="reports">
+              Reports
+              {reports.filter((r) => r.status === "pending").length > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] h-4 min-w-4 px-1">
+                  {reports.filter((r) => r.status === "pending").length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="medicines">
@@ -130,6 +139,9 @@ function DashboardPage() {
           </TabsContent>
           <TabsContent value="history">
             <HistoryTab history={history} />
+          </TabsContent>
+          <TabsContent value="reports">
+            <ReportsTab reports={reports} reload={load} />
           </TabsContent>
         </Tabs>
       </main>
